@@ -4,75 +4,278 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BadBudget</title>
-    <style>
-        .form-group {
-            margin-bottom: 1em;
-        }
-        .event-participant {
-            margin-bottom: 1em;
-        }
-    </style>
+    
 </head>
 <body>
+    <script>
+        const localStoragePrefix = 'BB_';
+        const localStorage_ProfileIdSeparator = '_';
+        let actualProfile = null;
+    </script>
+
     <h1>BadBudget</h1>
 
-    <h2>Add Person</h2>
-    <form id="addPersonForm">
-        <div class="form-group">
-            <label for="personName">Name:</label>
-            <input type="text" id="personName" required>
-        </div>
-        <button type="submit">Add Person</button>
-    </form>
+    <div id="app"></div>
+        <section id="descriptions">
+            <h2>Descriptions</h2>
+            <p>Welcome to BadBudget, your personal budget management tool.</p>
+        </section>
 
-    <h2>People</h2>
-    <div id="peopleList"></div>
+        <section id="administration">
 
-    <h2>Add Event</h2>
-    <form id="addEventForm">
-        <div class="form-group">
-            <label for="eventName">Event Name:</label>
-            <input type="text" id="eventName" required>
-        </div>
-        <div class="form-group">
-            <label for="eventDate">Date:</label>
-            <input type="date" id="eventDate" required>
-        </div>
-        <div class="form-group">
-            <label for="placePrice">Place Price:</label>
-            <input type="number" id="placePrice" required>
-        </div>
-        <div class="form-group">
-            <label for="boxPrice">Box Price:</label>
-            <input type="number" id="boxPrice" required>
-        </div>
-        <div class="form-group">
-            <label for="numberOfBallsInBox">Number of Balls in Box:</label>
-            <input type="number" id="numberOfBallsInBox" required>
-        </div>
-        <div class="form-group">
-            <label for="usedBalls">Used Balls:</label>
-            <input type="number" id="usedBalls" required>
-        </div>
-        <button type="submit">Add Event</button>
-    </form>
+            <h2>Administration</h2>
+            <div id="administration-profile">
+                
+                <div id="actual-profile">
+                    <h3>Actual Profile</h3>
+                    <p id="profile-name">Name: <span id="actual-profile-name"></span></p>
+                    <p id="profile-id">ID: <span id="actual-profile-id"></span></p>
+                </div>
+                <div id="profiles-list">
+                    <h3>Existing Profiles</h3>
+                    <table id="profiles-keys">
+                        <thead>
+                            <tr>
+                                <th>Switch to</th><th>Profile Key</th><th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Profiles will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-profile">
+                    <h3>Create New Profile</h3>
+                    <form id="create-profile-form">
+                        <label for="new-profile-name">Name:</label>
+                        <input type="text" id="new-profile-name" name="new-profile-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+            </div>
 
-    <h2>Events</h2>
-    <div id="eventsList"></div>
+            <div id="administration-people">
+                <h3>People of</h3>
+                <div id="people-list">
+                    <h4>People List</h4>
+                    <table id="people-keys">
+                        <thead>
+                            <tr>
+                                <th>Id</th><th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- People will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-person">
+                    <h4>Create New Person</h4>
+                    <form id="create-person-form">
+                        <label for="new-person-name">Name:</label>
+                        <input type="text" id="new-person-name" name="new-person-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="administration-groups">
+                <h3>Groups of </h3>
+                <div id="groups-list">
+                    <h4>Groups List</h4>
+                    <table id="groups-keys">
+                        <thead>
+                            <tr>
+                                <th>Id</th><th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Groups will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-group">
+                    <h4>Create New Group</h4>
+                    <form id="create-group-form">
+                        <label for="new-group-name">Name:</label>
+                        <input type="text" id="new-group-name" name="new-group-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="in-use">
+            <h2>In Use</h2>
+            <p>Manage your events and attendances here.</p>
+        </section>
+    </div>
 
     <script>
-        class Person {
+        function findUnusedProfileId(){
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            let id = 1;
+            if (profileKeys.length === 0) {
+                return id;
+            }
+
+            profileKeys.forEach(profileKey => {
+                if(!profileKey.startsWith(`${localStoragePrefix}${id}${localStorage_ProfileIdSeparator}`)){
+                    return id;
+                }
+                id++;
+            });
+            return id;
+        }
+
+        storeProfile(profile){
+            if(profile){
+                localStorage.setItem(localStoragePrefix + profile.storageKey(), profile.toJSON());
+            }
+        }
+
+        function storeActualProfile() {
+            if (actualProfile) {
+                storeProfile(actualProfile);
+            }
+        }
+
+        function switchProfileFromLocalStorage(key) {
+            const profileJSON = localStorage.getItem(key);
+            if (!profileJSON) {
+                throw new Error(`Profile with key ${key} not found`);
+            }
+
+            if(actualProfile){
+                storeActualProfile();
+            }
+
+            actualProfile = BB_Profile.fromJSON(profileJSON);
+
+            renderActualProfile();
+        }
+
+        function deleteProfileFromLocalStorage(key) {
+            localStorage.removeItem(key);
+            renderProfilesList();
+        }
+
+        function deleteProfileFromActualProfile(){
+            if (actualProfile) {
+                actualProfile = null;
+           }
+        }
+
+        function deleteProfile(key){
+            deleteProfileFromLocalStorage(key);
+
+            if (actualProfile && key === localStoragePrefix + actualProfile.storageKey()) {
+                actualProfile = null; 
+                renderActualProfile();               
+            }      
+        }
+
+        function renderActualProfile(){
+            if (actualProfile) {
+                document.getElementById('actual-profile-name').textContent = actualProfile.bb_name;
+                document.getElementById('actual-profile-id').textContent = actualProfile.bb_id;
+                document.getElementById('administration-people').getElementsByTagName('h3')[0].textContent = `People of ${actualProfile.bb_name}`; 
+                
+                let peopleTBody = document.getElementById('people-keys').getElementsByTagName('tbody')[0];
+                peopleTBody.innerHTML = '';
+                actualProfile.bb_people.forEach(person => {
+                    const row = peopleTBody.insertRow();
+                    const idCell = row.insertCell();
+                    const nameCell = row.insertCell();
+                    idCell.textContent = person.bb_id;
+                    nameCell.textContent = person.bb_name;
+                });
+
+
+
+            }else{ /* no actual profile */
+                const emptyName = '>> No profile selected <<';
+                document.getElementById('actual-profile-name').textContent = emptyName;
+                document.getElementById('actual-profile-id').textContent = '';
+                document.getElementById('administration-people').getElementsByTagName('h3').textContent = `People of ${emptyName}`; 
+                document.getElementById('people-keys').getElementsByTagName('tbody')[0].innerHTML = '';
+            }
+        }
+
+        function renderProfilesList(){
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            const profilesTable = document.getElementById('profiles-keys').getElementsByTagName('tbody')[0];
+            profilesTable.innerHTML = '';
+            profileKeys.forEach(key => {
+                const row = profilesTable.insertRow();
+                const switchCell = row.insertCell();
+                const deleteCell = row.insertCell();
+                const keyCell = row.insertCell();
+                switchCell.innerHTML = `<button onclick="switchProfileFromLocalStorage('${key}')">Switch to</button>`;
+                deleteCell.innerHTML = `<button onclick="deleteProfile('${key}')">Delete</button>`;
+                keyCell.textContent = key.substring(localStoragePrefix.length);;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProfilesList();
+
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            if(profileKeys.length > 0){
+                loadProfileFromLocalStorage(profileKeys[0]);
+            }
+        });
+
+        document.getElementById('create-profile-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newProfileName = document.getElementById('new-profile-name').value;
+            const newProfile = new BB_Profile(findUnusedProfileId(), newProfileName);
+            storeActualProfile();
+            actualProfile = newProfile;
+            storeActualProfile();
+
+            renderProfilesList();
+            renderActualProfile();
+        });
+
+        document.getElementById('create-person-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newPersonName = document.getElementById('new-person-name').value;
+            actualProfile.addPersonByValues(newPersonName);
+            storeActualProfile();
+            renderActualProfile();
+        });
+    </script>
+
+
+    <script>
+        function maxAtributinList(list, atribut){
+            return list.reduce((max, item) => item[atribut] > max ? item[atribut] : max, 0);
+        }
+
+        function formatDate(date) {
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        }
+
+        class BB_Person {
             constructor(id, name) {
                 this.bb_id = id;
                 this.bb_name = name;
             }
 
             static fromObject(obj) {
-                return new Person(obj.bb_id, obj.bb_name);
+                return new BB_Person(obj.bb_id, obj.bb_name);
             }
 
             static fromJSON(json) {
-                return Person.fromObject(JSON.parse(json));
+                return BB_Person.fromObject(JSON.parse(json));
             }
 
             toJSON(){
@@ -80,7 +283,32 @@
             }
         }
 
-        class Event {
+        class BB_Attendance {
+            constructor(person, attendance_fraction=1, payed=0) {
+                this.bb_person = person;
+                this.bb_attendance_fraction = attendance_fraction;
+                this.bb_payed = payed;
+            }
+
+            static fromObject(obj, persons) {
+                const person = persons.find(p => p.bb_id === obj.bb_person_id);
+                return new BB_Attendance(person, obj.bb_attendance_fraction, obj.bb_payed);
+            }
+
+            static fromJSON(json, persons) {
+                return BB_Attendance.fromObject(JSON.parse(json), persons);
+            }
+
+            toJSON() {
+                return JSON.stringify({
+                    bb_person_id: this.bb_person.bb_id,
+                    bb_attendance_fraction: this.bb_attendance_fraction,
+                    bb_payed: this.bb_payed
+                });
+            }
+        }
+
+        class BB_Event {
             constructor(id, name, date, placePrice, boxPrice, numberOfBallsInBox, usedBalls) {
                 this.bb_id = id;
                 this.bb_name = name;
@@ -89,6 +317,7 @@
                 this.bb_boxPrice = boxPrice;
                 this.bb_numberOfBallsInBox = numberOfBallsInBox;
                 this.bb_usedBalls = usedBalls;
+                this.bb_attendances = [];
             }
 
             priceOfBalls(){
@@ -103,12 +332,54 @@
                 return this.priceOfPlace() + this.priceOfBalls();
             }
 
-            static fromObject(obj) {
-                return new Event(obj.bb_id, obj.bb_name, obj.bb_date, obj.bb_placePrice, obj.bb_boxPrice, obj.bb_numberOfBallsInBox, obj.bb_usedBalls);
+            addAttendance(attendance){
+                if (this.bb_attendances.some(att => att.bb_person.bb_id === attendance.bb_person.bb_id)) {
+                    throw new Error(`Attendance for person ${attendance.bb_person.bb_name} on event ${this.bb_name} (${formatDate(this.bb_date)}) already exists`);
+                }
+                this.bb_attendances.push(attendance);
             }
 
-            static fromJSON(json) {
-                return Event.fromObject(JSON.parse(json));
+            addPersonAttendance(person, attendance_fraction=1, payed=0){
+                const attendance = new BB_Attendance(person, attendance_fraction, payed);
+                this.addAttendance(attendance);
+            }
+
+            getAttendenceViaPersonId(person_id){
+                return this.bb_attendances.find(attendance => attendance.bb_person.bb_id === person_id);
+            }
+
+            numberOfPersons(){
+                return this.bb_attendances.length;
+            }
+
+            numberOfPersons_fractions(){
+                return this.bb_attendances.reduce((sum, attendance) => sum + attendance.bb_attendance_fraction, 0);
+            }
+
+            pricePerPerson(){
+                return this.price() / this.numberOfPersons_fractions();
+            }
+
+            toPayForPersons(){
+                let pricePerPerson = this.pricePerPerson();
+                return this.bb_attendances.map(attendance => {      
+                    let personPrice = pricePerPerson * attendance.bb_attendance_fraction;              
+                    return {
+                        person: attendance.bb_person,
+                        price: personPrice,
+                        toPay: personPrice - attendance.bb_payed
+                    };
+                });
+            }
+
+            static fromObject(obj, persons) {
+                const event = new BB_Event(obj.bb_id, obj.bb_name, obj.bb_date, obj.bb_placePrice, obj.bb_boxPrice, obj.bb_numberOfBallsInBox, obj.bb_usedBalls);
+                event.bb_attendances = obj.bb_attendances.map(attendanceObj => BB_Attendance.fromObject(attendanceObj, persons));
+                return event;
+            }
+
+            static fromJSON(json, persons) {
+                return BB_Event.fromObject(JSON.parse(json, persons));
             }
 
             toJSON() {
@@ -119,69 +390,18 @@
                     bb_placePrice: this.bb_placePrice,
                     bb_boxPrice: this.bb_boxPrice,
                     bb_numberOfBallsInBox: this.bb_numberOfBallsInBox,
-                    bb_usedBalls: this.bb_usedBalls
+                    bb_usedBalls: this.bb_usedBalls,
+                    bb_attendances: this.attendances.map(attendance => attendance.toJSON())
                 });
             }
-        }
+        }        
 
-        class Attendance {
-            constructor(event, person, attendance_fraction=1, payed=0) {
-                this.bb_event = event;
-                this.bb_person = person;
-                this.bb_attendance_fraction = attendance_fraction;
-                this.bb_payed = payed;
-            }
-
-            priceForPerson(number_of_people_fraction){
-                return this.bb_event.price() * this.bb_attendance_fraction / number_of_people_fraction;
-            }
-
-            toPayForPerson(number_of_people_fraction, priceForPerson=undefined){
-                if(priceForPerson === undefined){
-                    priceForPerson = this.priceForPerson(number_of_people_fraction);
-                }
-                return priceForPerson - this.bb_payed;
-            }
-
-            static fromObject(obj, events, persons) {
-                const event = events.find(e => e.bb_id === obj.bb_event_id);
-                const person = persons.find(p => p.bb_id === obj.bb_person_id);
-                return new Attendance(event, person, obj.bb_attendance_fraction, obj.bb_payed);
-            }
-
-            static fromJSON(json, events, persons) {
-                return Attendance.fromObject(JSON.parse(json), events, persons);
-            }
-
-            toJSON() {
-                return JSON.stringify({
-                    bb_event_id: this.bb_event.bb_id,
-                    bb_person_id: this.bb_person.bb_id,
-                    bb_attendance_fraction: this.bb_attendance_fraction,
-                    bb_payed: this.bb_payed
-                });
-            }
-        }
-
-        function maxAtributinList(list, atribut){
-            return list.reduce((max, item) => item[atribut] > max ? item[atribut] : max, 0);
-        }
-
-        class Group{
+        class BB_Group{
             constructor(id, name){
                 this.bb_id = id;
                 this.bb_name = name;
                 this.bb_people = [];
                 this.bb_events = [];
-                this.bb_attendances = [];
-            }
-
-            fractionPeopleAtEvent(event){
-                let attendances = this.bb_attendances.filter(attendance => attendance.bb_event === event);
-                if(attendances.length === 0){
-                    return 0;
-                }
-                return attendances.reduce((sum, attendance) => sum + attendance.bb_attendance_fraction, 0);
             }
 
             eventById(event_id){
@@ -192,33 +412,8 @@
                 return event;
             }
 
-            fractionPeopleAtEventById(event_id){
-                return this.fractionPeopleAtEvent(this.eventById(event_id));
-            }
-
-            priceForPeopleAtEvent(event){
-                let fractionPeopleAtEvent = this.fractionPeopleAtEvent(event);
-                if(fractionPeopleAtEvent === 0){
-                    throw new Error(`No people at event ${event.bb_name}`);
-                }
-                let attendances = this.bb_attendances.filter(attendance => attendance.bb_event === event);
-                return attendances.map(attendance => {
-                    let priceForPerson = attendance.priceForPerson(fractionPeopleAtEvent);
-                    return {
-                        person: attendance.bb_person,
-                        price: priceForPerson,
-                        toPay: attendance.toPayForPerson(fractionPeopleAtEvent, priceForPerson)
-                    };
-                });
-            }
-
             addPerson(person){
                 this.bb_people.push(person);
-            }
-
-            addPersonByValues(name){
-                const person = new Person(maxAtributinList(this.bb_people, 'bb_id') + 1, name);
-                this.addPerson(person);
             }
 
             addEvent(event){
@@ -226,37 +421,93 @@
             }
 
             addEventByValues(name, date, placePrice, boxPrice, numberOfBallsInBox, usedBalls){
-                const event = new Event(maxAtributinList(this.bb_events, 'bb_id') + 1, name, date, placePrice, boxPrice, numberOfBallsInBox, usedBalls);
+                const event = new BB_Event(maxAtributinList(this.bb_events, 'bb_id') + 1, name, date, placePrice, boxPrice, numberOfBallsInBox, usedBalls);
                 this.addEvent(event);
-            }
-
-            addAttendance(attendance){
-                this.bb_attendances.push(attendance);
-            }
-
-            addAttendanceByValues(event, person, attendance_fraction=1, payed=0){
-                const attendance = new Attendance(event, person, attendance_fraction, payed);
-                this.addAttendance(attendance);
             }
 
             addAttendanceByValuesById(event_id, person_id, attendance_fraction=1, payed=0){
                 const event = this.bb_events.find(e => e.bb_id === event_id);
                 const person = this.bb_people.find(p => p.bb_id === person_id);
-                this.addAttendanceByValues(event, person, attendance_fraction, payed);
+                event.addPersonAttendance(person, attendance_fraction, payed);
             }
 
+            toJSON() {
+                return JSON.stringify({
+                    bb_id: this.bb_id,
+                    bb_name: this.bb_name,
+                    bb_people_ids: this.bb_people.map(person => person.bb_id),
+                    bb_events: this.bb_events.map(event => event.toJSON())
+                });
+            }
 
-
-            static fromObject(obj) {
-                const group = new Group(obj.bb_id, obj.bb_name);
-                group.bb_people = obj.bb_people.map(personObj => Person.fromObject(personObj));
-                group.bb_events = obj.bb_events.map(eventObj => Event.fromObject(eventObj));
-                group.bb_attendances = obj.bb_attendances.map(attendanceObj => Attendance.fromObject(attendanceObj, group.bb_events, group.bb_people));
+            static fromObject(obj, peopleList) {
+                const group = new BB_Group(obj.bb_id, obj.bb_name);
+                group.bb_people = obj.bb_people_ids.map(personId => peopleList.find(person => person.bb_id === personId));
+                group.bb_events = obj.bb_events.map(eventObj => BB_Event.fromObject(eventObj, peopleList));
                 return group;
             }
 
-            static fromJSON(json) {
-                return Group.fromObject(JSON.parse(json));
+            static fromJSON(json, peopleList) {
+                return BB_Group.fromObject(JSON.parse(json, peopleList));
+            }
+        }
+
+        class BB_Profile{
+            constructor(id, name){
+                this.bb_id = id;
+                this.bb_name = name;
+                this.bb_people = [];
+                this.bb_groups = [];
+            }
+
+            addPerson(person){
+                if (this.bb_people.some(p => p.bb_name === person.bb_name)) {
+                    throw new Error(`Person with name ${person.bb_name} already exists`);
+                }
+
+                if (this.bb_people.some(p => p.bb_id === person.bb_id)) {
+                    person.bb_id = maxAtributinList(this.bb_people, 'bb_id') + 1;
+                }
+
+                this.bb_people.push(person);
+            }
+            
+            addPersonByValues(name){
+                const person = new BB_Person(maxAtributinList(this.bb_people, 'bb_id') + 1, name);
+                this.addPerson(person);
+            }
+
+            getPersonById(person_id){
+                let person = this.bb_people.find(p => p.bb_id === person_id);
+                if(!person){
+                    throw new Error(`Person with id ${person_id} not found`);
+                }
+                return person;
+            }
+            
+            addGroup(group){
+                if (this.bb_groups.some(g => g.bb_name === group.bb_name)) {
+                    throw new Error(`Group with name ${group.bb_name} already exists`);
+                }
+
+                if (this.bb_groups.some(g => g.bb_id === group.bb_id)) {
+                    group.bb_id = maxAtributinList(this.bb_groups, 'bb_id') + 1;
+                }
+
+                this.bb_groups.push(group);
+            }
+
+            addGroupByValues(name){
+                const group = new BB_Group(maxAtributinList(this.bb_groups, 'bb_id') + 1, name);
+                this.addGroup(group);
+            }
+
+            groupById(group_id){
+                let group = this.bb_groups.find(g => g.bb_id === group_id);
+                if(!group){
+                    throw new Error(`Group with id ${group_id} not found`);
+                }
+                return group;
             }
 
             toJSON() {
@@ -264,88 +515,25 @@
                     bb_id: this.bb_id,
                     bb_name: this.bb_name,
                     bb_people: this.bb_people.map(person => person.toJSON()),
-                    bb_events: this.bb_events.map(event => event.toJSON()),
-                    bb_attendances: this.bb_attendances.map(attendance => attendance.toJSON())
+                    bb_groups: this.bb_groups.map(group => group.toJSON())
                 });
             }
-        }
 
+            static fromObject(obj) {
+                const profile = new BB_Profile(obj.bb_id, obj.bb_name);
+                profile.bb_people = obj.bb_people.map(personObj => BB_Person.fromObject(personObj));
+                profile.bb_groups = obj.bb_groups.map(groupObj => BB_Group.fromObject(groupObj, profile.bb_people));
+                return profile;
+            }
 
+            static fromJSON(json) {
+                return BB_Profile.fromObject(JSON.parse(json));
+            }
 
-        const people = JSON.parse(localStorage.getItem('people')) || [];
-        const events = JSON.parse(localStorage.getItem('events')) || [];
-
-        document.getElementById('addPersonForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const personName = document.getElementById('personName').value;
-            const person = new Person(personName);
-            people.push(person);
-            localStorage.setItem('people', JSON.stringify(people));
-            displayPeople();
-            this.reset();
-        });
-
-        document.getElementById('addEventForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const eventName = document.getElementById('eventName').value;
-            const eventDate = document.getElementById('eventDate').value;
-            const placePrice = document.getElementById('placePrice').value;
-            const boxPrice = document.getElementById('boxPrice').value;
-            const numberOfBallsInBox = document.getElementById('numberOfBallsInBox').value;
-            const usedBalls = document.getElementById('usedBalls').value;
-            const eventObj = new Event(eventName, eventDate, placePrice, boxPrice, numberOfBallsInBox, usedBalls);
-            events.push(eventObj);
-            localStorage.setItem('events', JSON.stringify(events));
-            displayEvents();
-            this.reset();
-        });
-
-        function displayPeople() {
-            const peopleList = document.getElementById('peopleList');
-            peopleList.innerHTML = '';
-            people.forEach(person => {
-                const div = document.createElement('div');
-                div.textContent = person.name;
-                peopleList.appendChild(div);
-            });
-        }
-
-        function displayEvents() {
-            const eventsList = document.getElementById('eventsList');
-            eventsList.innerHTML = '';
-            events.forEach((eventObj, eventIndex) => {
-                const eventDiv = document.createElement('div');
-                eventDiv.innerHTML = `<h3>${eventObj.name}</h3>
-                                      <p>Date: ${eventObj.date}</p>
-                                      <p>Place Price: ${eventObj.placePrice}</p>
-                                      <p>Box Price: ${eventObj.boxPrice}</p>
-                                      <p>Number of Balls in Box: ${eventObj.numberOfBallsInBox}</p>
-                                      <p>Used Balls: ${eventObj.usedBalls}</p>`;
-                eventObj.participants.forEach((participant, participantIndex) => {
-                    const participantDiv = document.createElement('div');
-                    participantDiv.classList.add('event-participant');
-                    participantDiv.innerHTML = `<p>Participant: ${participant.person.name}</p>
-                                                <p>Attendance: ${participant.attendance}</p>
-                                                <p>Payed: ${participant.payed}</p>
-                                                <button onclick="markAsDone(${eventIndex}, ${participantIndex})">Done</button>`;
-                    eventDiv.appendChild(participantDiv);
-                });
-                eventsList.appendChild(eventDiv);
-            });
-        }
-
-        function markAsDone(eventIndex, participantIndex) {
-            const eventObj = events[eventIndex];
-            const participant = eventObj.participants[participantIndex];
-            const totalCost = eventObj.placePrice + eventObj.boxPrice;
-            const payedAmount = totalCost * participant.attendance;
-            participant.payed = payedAmount;
-            localStorage.setItem('events', JSON.stringify(events));
-            displayEvents();
-        }
-
-        displayPeople();
-        displayEvents();
+            storageKey(){
+                return `${this.bb_id}${localStorage_ProfileIdSeparator}${this.bb_name}`;
+            }
+        }        
     </script>
 </body>
 </html>
