@@ -8,248 +8,6 @@
 </head>
 <body>
     <script>
-        const localStoragePrefix = 'BB_';
-        const localStorage_ProfileIdSeparator = '_';
-        let actualProfile = null;
-    </script>
-
-    <h1>BadBudget</h1>
-
-    <div id="app"></div>
-        <section id="descriptions">
-            <h2>Descriptions</h2>
-            <p>Welcome to BadBudget, your personal budget management tool.</p>
-        </section>
-
-        <section id="administration">
-
-            <h2>Administration</h2>
-            <div id="administration-profile">
-                
-                <div id="actual-profile">
-                    <h3>Actual Profile</h3>
-                    <p id="profile-name">Name: <span id="actual-profile-name"></span></p>
-                    <p id="profile-id">ID: <span id="actual-profile-id"></span></p>
-                </div>
-                <div id="profiles-list">
-                    <h3>Existing Profiles</h3>
-                    <table id="profiles-keys">
-                        <thead>
-                            <tr>
-                                <th>Switch to</th><th>Profile Key</th><th>Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Profiles will be listed here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="create-profile">
-                    <h3>Create New Profile</h3>
-                    <form id="create-profile-form">
-                        <label for="new-profile-name">Name:</label>
-                        <input type="text" id="new-profile-name" name="new-profile-name" required>
-                        <button type="submit">Create</button>
-                    </form>
-                </div>
-            </div>
-
-            <div id="administration-people">
-                <h3>People of</h3>
-                <div id="people-list">
-                    <h4>People List</h4>
-                    <table id="people-keys">
-                        <thead>
-                            <tr>
-                                <th>Id</th><th>Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- People will be listed here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="create-person">
-                    <h4>Create New Person</h4>
-                    <form id="create-person-form">
-                        <label for="new-person-name">Name:</label>
-                        <input type="text" id="new-person-name" name="new-person-name" required>
-                        <button type="submit">Create</button>
-                    </form>
-                </div>
-            </div>
-
-            <div id="administration-groups">
-                <h3>Groups of </h3>
-                <div id="groups-list">
-                    <h4>Groups List</h4>
-                    <table id="groups-keys">
-                        <thead>
-                            <tr>
-                                <th>Id</th><th>Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Groups will be listed here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="create-group">
-                    <h4>Create New Group</h4>
-                    <form id="create-group-form">
-                        <label for="new-group-name">Name:</label>
-                        <input type="text" id="new-group-name" name="new-group-name" required>
-                        <button type="submit">Create</button>
-                    </form>
-                </div>
-            </div>
-
-        </section>
-
-        <section id="in-use">
-            <h2>In Use</h2>
-            <p>Manage your events and attendances here.</p>
-        </section>
-    </div>
-
-    <script>
-        function findUnusedProfileId(){
-            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
-            let id = 1;
-            if (profileKeys.length === 0) {
-                return id;
-            }
-
-            profileKeys.forEach(profileKey => {
-                if(!profileKey.startsWith(`${localStoragePrefix}${id}${localStorage_ProfileIdSeparator}`)){
-                    return id;
-                }
-                id++;
-            });
-            return id;
-        }
-
-        storeProfile(profile){
-            if(profile){
-                localStorage.setItem(localStoragePrefix + profile.storageKey(), profile.toJSON());
-            }
-        }
-
-        function storeActualProfile() {
-            if (actualProfile) {
-                storeProfile(actualProfile);
-            }
-        }
-
-        function switchProfileFromLocalStorage(key) {
-            const profileJSON = localStorage.getItem(key);
-            if (!profileJSON) {
-                throw new Error(`Profile with key ${key} not found`);
-            }
-
-            if(actualProfile){
-                storeActualProfile();
-            }
-
-            actualProfile = BB_Profile.fromJSON(profileJSON);
-
-            renderActualProfile();
-        }
-
-        function deleteProfileFromLocalStorage(key) {
-            localStorage.removeItem(key);
-            renderProfilesList();
-        }
-
-        function deleteProfileFromActualProfile(){
-            if (actualProfile) {
-                actualProfile = null;
-           }
-        }
-
-        function deleteProfile(key){
-            deleteProfileFromLocalStorage(key);
-
-            if (actualProfile && key === localStoragePrefix + actualProfile.storageKey()) {
-                actualProfile = null; 
-                renderActualProfile();               
-            }      
-        }
-
-        function renderActualProfile(){
-            if (actualProfile) {
-                document.getElementById('actual-profile-name').textContent = actualProfile.bb_name;
-                document.getElementById('actual-profile-id').textContent = actualProfile.bb_id;
-                document.getElementById('administration-people').getElementsByTagName('h3')[0].textContent = `People of ${actualProfile.bb_name}`; 
-                
-                let peopleTBody = document.getElementById('people-keys').getElementsByTagName('tbody')[0];
-                peopleTBody.innerHTML = '';
-                actualProfile.bb_people.forEach(person => {
-                    const row = peopleTBody.insertRow();
-                    const idCell = row.insertCell();
-                    const nameCell = row.insertCell();
-                    idCell.textContent = person.bb_id;
-                    nameCell.textContent = person.bb_name;
-                });
-
-
-
-            }else{ /* no actual profile */
-                const emptyName = '>> No profile selected <<';
-                document.getElementById('actual-profile-name').textContent = emptyName;
-                document.getElementById('actual-profile-id').textContent = '';
-                document.getElementById('administration-people').getElementsByTagName('h3').textContent = `People of ${emptyName}`; 
-                document.getElementById('people-keys').getElementsByTagName('tbody')[0].innerHTML = '';
-            }
-        }
-
-        function renderProfilesList(){
-            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
-            const profilesTable = document.getElementById('profiles-keys').getElementsByTagName('tbody')[0];
-            profilesTable.innerHTML = '';
-            profileKeys.forEach(key => {
-                const row = profilesTable.insertRow();
-                const switchCell = row.insertCell();
-                const deleteCell = row.insertCell();
-                const keyCell = row.insertCell();
-                switchCell.innerHTML = `<button onclick="switchProfileFromLocalStorage('${key}')">Switch to</button>`;
-                deleteCell.innerHTML = `<button onclick="deleteProfile('${key}')">Delete</button>`;
-                keyCell.textContent = key.substring(localStoragePrefix.length);;
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            renderProfilesList();
-
-            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
-            if(profileKeys.length > 0){
-                loadProfileFromLocalStorage(profileKeys[0]);
-            }
-        });
-
-        document.getElementById('create-profile-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const newProfileName = document.getElementById('new-profile-name').value;
-            const newProfile = new BB_Profile(findUnusedProfileId(), newProfileName);
-            storeActualProfile();
-            actualProfile = newProfile;
-            storeActualProfile();
-
-            renderProfilesList();
-            renderActualProfile();
-        });
-
-        document.getElementById('create-person-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const newPersonName = document.getElementById('new-person-name').value;
-            actualProfile.addPersonByValues(newPersonName);
-            storeActualProfile();
-            renderActualProfile();
-        });
-    </script>
-
-
-    <script>
         function maxAtributinList(list, atribut){
             return list.reduce((max, item) => item[atribut] > max ? item[atribut] : max, 0);
         }
@@ -278,9 +36,9 @@
                 return BB_Person.fromObject(JSON.parse(json));
             }
 
-            toJSON(){
-                return JSON.stringify(this);
-            }
+            // toJSON(){
+            //     return this;
+            // }
         }
 
         class BB_Attendance {
@@ -300,11 +58,11 @@
             }
 
             toJSON() {
-                return JSON.stringify({
-                    bb_person_id: this.bb_person.bb_id,
+                return {
+                    bb_person_id: this.bb_person.bb_id, // id only
                     bb_attendance_fraction: this.bb_attendance_fraction,
                     bb_payed: this.bb_payed
-                });
+                };
             }
         }
 
@@ -348,6 +106,18 @@
                 return this.bb_attendances.find(attendance => attendance.bb_person.bb_id === person_id);
             }
 
+            removeAttendance(attendance){
+                this.bb_attendances = this.bb_attendances.filter(att => att.bb_person.bb_id !== attendance.bb_person.bb_id);
+            }
+
+            removeAttendanceByPersonId(person_id){
+                let attendance = this.getAttendenceViaPersonId(person_id);
+                if (!attendance) {
+                    throw new Error(`Attendance for person with id ${person_id} not found`);
+                }
+                this.removeAttendance(attendance);
+            }
+
             numberOfPersons(){
                 return this.bb_attendances.length;
             }
@@ -372,28 +142,23 @@
                 });
             }
 
-            static fromObject(obj, persons) {
+            isAllPayed(){
+                return this.toPayForPersons().every(personPrice => personPrice.toPay === 0);
+            }
+
+            static fromObject(obj, peopleList) {
                 const event = new BB_Event(obj.bb_id, obj.bb_name, obj.bb_date, obj.bb_placePrice, obj.bb_boxPrice, obj.bb_numberOfBallsInBox, obj.bb_usedBalls);
-                event.bb_attendances = obj.bb_attendances.map(attendanceObj => BB_Attendance.fromObject(attendanceObj, persons));
+                event.bb_attendances = obj.bb_attendances.map(attendanceObj => BB_Attendance.fromObject(attendanceObj, peopleList));
                 return event;
             }
 
-            static fromJSON(json, persons) {
-                return BB_Event.fromObject(JSON.parse(json, persons));
+            static fromJSON(json, peopleList) {
+                return BB_Event.fromObject(JSON.parse(json), peopleList);
             }
 
-            toJSON() {
-                return JSON.stringify({
-                    bb_id: this.bb_id,
-                    bb_name: this.bb_name,
-                    bb_date: this.bb_date,
-                    bb_placePrice: this.bb_placePrice,
-                    bb_boxPrice: this.bb_boxPrice,
-                    bb_numberOfBallsInBox: this.bb_numberOfBallsInBox,
-                    bb_usedBalls: this.bb_usedBalls,
-                    bb_attendances: this.attendances.map(attendance => attendance.toJSON())
-                });
-            }
+            // toJSON() {
+            //     return this;
+            // }
         }        
 
         class BB_Group{
@@ -416,6 +181,29 @@
                 this.bb_people.push(person);
             }
 
+            removePerson(person){
+                let involvedEvents = [];
+                this.bb_events.forEach(event => {
+                    const attendance = event.getAttendenceViaPersonId(person.bb_id);
+                    if (attendance) {
+                        involvedEvents.push(event);
+                    }
+                });
+                if (involvedEvents.length > 0) {
+                    throw new Error(`Can not delete. Person ${person.bb_name} is involved in events ${involvedEvents.map(e => `${e.bb_name} (${formatDate(e.bb_date)})`).join(', ')}`);
+                }
+
+                this.bb_people = this.bb_people.filter(p => p.bb_id !== person.bb_id);
+            }
+
+            removePersonById(person_id){
+                let person = this.bb_people.find(p => p.bb_id === person_id);
+                if (!person) {
+                    throw new Error(`Person with id ${person_id} not found`);
+                }
+                this.removePerson(person);
+            }
+
             addEvent(event){
                 this.bb_events.push(event);
             }
@@ -425,6 +213,10 @@
                 this.addEvent(event);
             }
 
+            clearPayedEvents(){
+                this.bb_events = this.bb_events.filter(event => !event.isAllPayed());
+            }
+
             addAttendanceByValuesById(event_id, person_id, attendance_fraction=1, payed=0){
                 const event = this.bb_events.find(e => e.bb_id === event_id);
                 const person = this.bb_people.find(p => p.bb_id === person_id);
@@ -432,12 +224,12 @@
             }
 
             toJSON() {
-                return JSON.stringify({
+                return {
                     bb_id: this.bb_id,
                     bb_name: this.bb_name,
-                    bb_people_ids: this.bb_people.map(person => person.bb_id),
-                    bb_events: this.bb_events.map(event => event.toJSON())
-                });
+                    bb_people_ids: this.bb_people.map(person => person.bb_id), // ids only
+                    bb_events: this.bb_events,
+                };
             }
 
             static fromObject(obj, peopleList) {
@@ -448,7 +240,7 @@
             }
 
             static fromJSON(json, peopleList) {
-                return BB_Group.fromObject(JSON.parse(json, peopleList));
+                return BB_Group.fromObject(JSON.parse(json), peopleList);
             }
         }
 
@@ -484,6 +276,27 @@
                 }
                 return person;
             }
+
+            deletePerson(person){
+                let involvesGroups = [];
+                this.bb_groups.forEach(group => {
+                    if (group.bb_people.some(p => p.bb_id === person.bb_id)) {
+                        involvesGroups.push(group);
+                    }
+                });
+                if (involvesGroups.length > 0) {
+                    throw new Error(`Can not delete. Person ${person.bb_name} is involved in groups ${involvesGroups.map(g => g.bb_name).join(', ')}`);
+                }
+                this.bb_people = this.bb_people.filter(p => p.bb_id !== person.bb_id);
+            }
+
+            deletePersonById(person_id){
+                let person = this.getPersonById(person_id);
+                if (!person) {
+                    throw new Error(`Person with id ${person_id} not found`);
+                }
+                this.deletePerson(person);
+            }
             
             addGroup(group){
                 if (this.bb_groups.some(g => g.bb_name === group.bb_name)) {
@@ -502,7 +315,7 @@
                 this.addGroup(group);
             }
 
-            groupById(group_id){
+            getGroupById(group_id){
                 let group = this.bb_groups.find(g => g.bb_id === group_id);
                 if(!group){
                     throw new Error(`Group with id ${group_id} not found`);
@@ -510,13 +323,16 @@
                 return group;
             }
 
-            toJSON() {
-                return JSON.stringify({
-                    bb_id: this.bb_id,
-                    bb_name: this.bb_name,
-                    bb_people: this.bb_people.map(person => person.toJSON()),
-                    bb_groups: this.bb_groups.map(group => group.toJSON())
-                });
+            deleteGroup(group){
+                this.bb_groups = this.bb_groups.filter(g => g.bb_id !== group.bb_id);
+            }
+
+            deleteGroupById(group_id){
+                let group = this.getGroupById(group_id);
+                if (!group) {
+                    throw new Error(`Group with id ${group_id} not found`);
+                }
+                this.deleteGroup(group);
             }
 
             static fromObject(obj) {
@@ -530,10 +346,493 @@
                 return BB_Profile.fromObject(JSON.parse(json));
             }
 
+            // toJSON() {
+            //     return this;
+            // }
+
             storageKey(){
                 return `${this.bb_id}${localStorage_ProfileIdSeparator}${this.bb_name}`;
             }
         }        
     </script>
+    <script>
+        const localStoragePrefix = 'BB_';
+        const localStorage_ProfileIdSeparator = '_';
+        const dummyProfile = new BB_Profile(0, '>> No profile selected <<');
+        const dummyGroup = new BB_Group(0, '>> No group selected <<');
+        const dummEvent = new BB_Event(0, '>> No event selected <<', new Date(1992,10,11), 0, 0, 0, 0);
+        let actualProfile = null;
+        let actualGroup = null;
+        let actualEvent = null;
+    </script>
+
+    <h1>BadBudget</h1>
+
+    <div id="app"></div>
+        <section id="descriptions">
+            <h2>Descriptions</h2>
+            <p>Welcome to BadBudget, your personal budget management tool.</p>
+        </section>
+
+        <section id="administration">
+
+            <h2>Administration</h2>
+            <div id="administration-profile">
+                
+                <div id="actual-profile">
+                    <h3>Actual Profile</h3>
+                    <p>Name: <span class="placeholder-profile-name"></span></p>
+                    <p>ID: <span class="placeholder-profile-id"></span></p>
+                </div>
+                <div id="profiles-list">
+                    <h3>Existing Profiles</h3>
+                    <table id="profiles-keys">
+                        <thead>
+                            <tr>
+                                <th>Switch to</th><th>Profile Key</th><th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Profiles will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-profile">
+                    <h3>Create New Profile</h3>
+                    <form id="create-profile-form">
+                        <label for="new-profile-name">Name:</label>
+                        <input type="text" id="new-profile-name" name="new-profile-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="administration-people">
+                <h3>People of <span class="placeholder-profile-name"></span></h3>
+                <div id="people-list">
+                    <table id="people-keys">
+                        <thead>
+                            <tr>
+                                <th>Id</th><th>Name</th><th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- People will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-person">
+                    <h4>Create New Person</h4>
+                    <form id="create-person-form">
+                        <label for="new-person-name">Name:</label>
+                        <input type="text" id="new-person-name" name="new-person-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="administration-groups">
+                <h3>Groups of <span class="placeholder-profile-name"></span></h3>
+                <div id="groups-list">
+                    <table id="groups-keys">
+                        <thead>
+                            <tr>
+                                <th>Switch to</th><th>Id</th><th>Name</th><th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Groups will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="create-group">
+                    <h4>Create New Group</h4>
+                    <form id="create-group-form">
+                        <label for="new-group-name">Name:</label>
+                        <input type="text" id="new-group-name" name="new-group-name" required>
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
+
+                <div id="group-people">
+                    <h4>People in <span class="placeholder-group-name"></span></h4>
+                    <table id="group-people-keys">
+                        <thead>
+                            <tr>
+                                <th>Id</th><th>Name</th><th>Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Group people will be listed here -->
+
+                        </tbody>
+                    </table>
+                </div>
+                <div id="add-person-to-group">
+                    <h4>Add Person to <span class="placeholder-group-name"></span></h4>
+                    <form id="add-person-to-group-form">
+                        <label for="person-group-add">Select for adding:</label>
+                        <select id="person-group-add" name="person-group-add">
+                            <option value=""> ::Add nobody:: </option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="in-use">
+            <h2>In Use</h2>
+            <p>Manage your events and attendances here.</p>
+        </section>
+    </div>
+
+    <script>
+        function findUnusedProfileId(){
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            let id = 1;
+            if (profileKeys.length === 0) {
+                return id;
+            }
+
+            while (profileKeys.some(key => key.startsWith(`${localStoragePrefix}${id}${localStorage_ProfileIdSeparator}`))) {
+                id++;
+            }
+
+            return id;
+        }
+
+        function setActualProfile(profile){
+            if(!profile){
+                actualProfile = dummyProfile;
+                renderActualProfile();
+                setActualGroup(null);
+                return;
+            }
+
+            actualProfile = profile;
+            renderActualProfile();
+
+            if(actualProfile.bb_groups.length > 0){
+                setActualGroup(actualProfile.bb_groups[0]);
+            }else{
+                setActualGroup(null);
+            }
+        }
+
+        function setActualGroup(group){
+            if(!group || !actualProfile || actualProfile === dummyProfile){
+                actualGroup = dummyGroup;
+                renderActualGroup();
+                setActualEvent(null);
+                return;
+            }
+
+            if(actualProfile.bb_groups.indexOf(group) === -1){
+                throw new Error(`Group ${group.bb_name} not found in profile ${actualProfile.bb_name}`);
+            }
+
+            actualGroup = group;
+            renderActualGroup();
+
+            if(actualGroup.bb_events.length > 0){
+                setActualEvent(actualGroup.bb_events[0]);
+            }else{
+                setActualEvent(null);
+            }
+        }
+
+        function setActualGroupById(group_id){
+            setActualGroup(actualProfile.getGroupById(group_id));
+        }
+
+        function setActualEvent(event){
+            if(!event || !actualGroup || actualGroup === dummyGroup){
+                actualEvent = dummEvent;
+                renderActualEvent();
+                return;
+            }
+
+            if(actualGroup.bb_events.indexOf(event) === -1){
+                throw new Error(`Event ${event.bb_name} (${formatDate(event.bb_date)}) not found in group ${actualGroup.bb_name}`);
+            }
+
+            actualEvent = event;
+            renderActualEvent();
+        }
+
+        function storeProfile(profile){
+            if(profile !== dummyProfile){
+                localStorage.setItem(localStoragePrefix + profile.storageKey(), JSON.stringify(profile));
+            }
+        }
+
+        function storeActualProfile() {
+            if (actualProfile) {
+                storeProfile(actualProfile);
+            }
+        }
+
+        function switchActualProfile(profile){
+            storeActualProfile();
+            setActualProfile(profile);
+            renderActualProfile();
+        }
+
+        function switchProfileFromLocalStorage(key) {
+            const profileJSON = localStorage.getItem(key);
+            if (!profileJSON) {
+                throw new Error(`Profile with key ${key} not found`);
+            }
+            switchActualProfile(BB_Profile.fromJSON(profileJSON));
+        }
+
+        function deleteProfileFromLocalStorage(key) {
+            localStorage.removeItem(key);
+            renderProfilesList();
+        }
+
+        function deleteActualProfile(){
+            setActualProfile(null);
+        }
+
+        function deleteProfile(key){
+            deleteProfileFromLocalStorage(key);
+
+            if (actualProfile && key === localStoragePrefix + actualProfile.storageKey()) {
+                deleteActualProfile();              
+            }      
+        }
+
+        function deletePerson(profile, person_id){
+            try {
+                profile.deletePersonById(person_id);
+                storeProfile(profile);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function deletePersonFromActualProfile(person_id){
+            if (!actualProfile) {
+                throw new Error('Actual profile is not set');
+            }
+            deletePerson(actualProfile, person_id);
+            renderActualProfile();
+        }
+
+        function deleteGroup(profile, group_id){
+            try {
+                profile.deleteGroupById(group_id);
+                storeProfile(profile);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function deleteGroupFromActualProfile(group_id) {
+            if (!actualProfile) {
+                throw new Error('Actual profile is not set');
+            }
+            deleteGroup(actualProfile, group_id);
+            renderActualProfileGroupsList();
+        }
+
+        function renderProfilesList(){
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            const profilesTable = document.getElementById('profiles-keys').getElementsByTagName('tbody')[0];
+            profilesTable.innerHTML = '';
+            profileKeys.forEach(key => {
+                const row = profilesTable.insertRow();
+                const switchCell = row.insertCell();
+                const keyCell = row.insertCell();
+                const deleteCell = row.insertCell();
+
+                switchCell.innerHTML = `<button onclick="switchProfileFromLocalStorage('${key}')">Switch to</button>`;
+                keyCell.textContent = key.substring(localStoragePrefix.length);
+                deleteCell.innerHTML = `<button onclick="deleteProfile('${key}')">Delete</button>`;
+            });
+        }
+
+        function renderActualProfile(){
+            if (!actualProfile) {
+                throw new Error('Actual profile is not set');  
+            } 
+
+            document.querySelectorAll('.placeholder-profile-name').forEach(element => {
+                element.textContent = actualProfile.bb_name;
+            });
+            document.querySelectorAll('.placeholder-profile-id').forEach(element => {
+                element.textContent = actualProfile.bb_id;
+            });
+
+            document.getElementById('administration-people').getElementsByTagName('h3')[0].textContent = `People of ${actualProfile.bb_name}`; 
+            renderActualProfilePeopleList();
+
+            document.getElementById('administration-groups').getElementsByTagName('h3')[0].textContent = `Groups of ${actualProfile.bb_name}`;
+            renderActualProfileGroupsList();          
+        }
+
+        function renderActualGroup(){
+            if (!actualGroup) {
+                throw new Error('Actual group is not set');
+            }
+
+            document.querySelectorAll('.placeholder-group-name').forEach(element => {
+                element.textContent = actualGroup.bb_name;
+            });
+            renderActualGroupPeopleList();
+        }
+
+        function renderActualGroupPeopleList(){
+            let groupPeopleTBody = document.getElementById('group-people-keys').getElementsByTagName('tbody')[0];
+            groupPeopleTBody.innerHTML = '';
+            actualGroup.bb_people.forEach(person => {
+                const row = groupPeopleTBody.insertRow();
+                const idCell = row.insertCell();
+                const nameCell = row.insertCell();
+                const removeCell = row.insertCell();
+
+                idCell.textContent = person.bb_id;
+                nameCell.textContent = person.bb_name;
+                removeCell.innerHTML = `<button onclick="deletePersonByIdFromActualGroup(${person.bb_id})">Remove</button>`;
+            });
+        }
+
+        function deletePersonByIdFromActualGroup(person_id){
+            if (!actualGroup) {
+                throw new Error('Actual group is not set');
+            }
+            actualGroup.removePersonById(person_id);
+            storeActualProfile();
+            renderActualGroupPeopleList();
+        }
+
+        function renderActualEvent(){
+            if (!actualEvent) {
+                throw new Error('Actual event is not set');
+            }
+
+            // document.querySelector('.placeholder-event-name').textContent = actualEvent.bb_name;
+            // document.querySelector('.placeholder-event-date').textContent = formatDate(actualEvent.bb_date);
+            // document.querySelector('.placeholder-event-place-price').textContent = actualEvent.bb_placePrice;
+            // document.querySelector('.placeholder-event-box-price').textContent = actualEvent.bb_boxPrice;
+            // document.querySelector('.placeholder-event-number-of-balls-in-box').textContent = actualEvent.bb_numberOfBallsInBox;
+            // document.querySelector('.placeholder-event-used-balls').textContent = actualEvent.bb_usedBalls;
+            // document.querySelector('.placeholder-event-price').textContent = actualEvent.price();
+            // document.querySelector('.placeholder-event-price-per-person').textContent = actualEvent.pricePerPerson();
+            // renderEventAttendancesList();
+        }
+
+        function renderActualProfilePeopleList(){
+            let peopleTBody = document.getElementById('people-keys').getElementsByTagName('tbody')[0];
+            peopleTBody.innerHTML = '';
+            actualProfile.bb_people.forEach(person => {
+                const row = peopleTBody.insertRow();
+                const idCell = row.insertCell();
+                const nameCell = row.insertCell();
+                const deleteCell = row.insertCell();
+
+                idCell.textContent = person.bb_id;
+                nameCell.textContent = person.bb_name;
+                deleteCell.innerHTML = `<button onclick="deletePersonFromActualProfile(${person.bb_id})">Delete</button>`;
+                });            
+        }
+
+        function renderActualProfileGroupsList() {
+            const groupsTable = document.getElementById('groups-keys').getElementsByTagName('tbody')[0];
+            groupsTable.innerHTML = '';
+            actualProfile.bb_groups.forEach(group => {
+                const row = groupsTable.insertRow();
+                const switchCell = row.insertCell();
+                const idCell = row.insertCell();
+                const nameCell = row.insertCell();
+                const deleteCell = row.insertCell();
+
+                switchCell.innerHTML = `<button onclick="setActualGroupById(${group.bb_id})">Switch to</button>`;
+                idCell.textContent = group.bb_id;
+                nameCell.textContent = group.bb_name;
+                deleteCell.innerHTML = `<button onclick="deleteGroupFromActualProfile(${group.bb_id})">Delete</button>`;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProfilesList();
+
+            const profileKeys = Object.keys(localStorage).filter(key => key.startsWith(localStoragePrefix));
+            if(profileKeys.length > 0){
+                switchProfileFromLocalStorage(profileKeys[0]);
+            }else{
+                setActualProfile(dummyProfile);
+            }
+        });
+
+        document.getElementById('create-profile-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newProfileName = document.getElementById('new-profile-name').value;
+            const newProfile = new BB_Profile(findUnusedProfileId(), newProfileName);
+            switchActualProfile(newProfile);
+            storeProfile(newProfile);
+
+            renderProfilesList();
+        });
+
+        document.getElementById('create-person-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            try {
+                const newPersonName = document.getElementById('new-person-name').value;
+                actualProfile.addPersonByValues(newPersonName);
+                storeActualProfile();
+                renderActualProfilePeopleList();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        document.getElementById('create-group-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newGroupName = document.getElementById('new-group-name').value;
+            actualProfile.addGroupByValues(newGroupName);
+            storeActualProfile();
+            renderActualProfileGroupsList();
+        });
+
+
+        document.getElementById('person-group-add').addEventListener('change', function(event) {
+            const personId = parseInt(event.target.value);
+            if (personId) {
+                const person = actualProfile.getPersonById(personId);
+                actualGroup.addPerson(person);
+                storeActualProfile();
+                renderActualGroupPeopleList();
+                event.target.value = ''; // Reset the selection
+                event.target.blur();
+            }
+        });
+
+        document.getElementById('person-group-add').addEventListener('focus', function() {
+            renderPersonGroupAddOptions();
+        });
+
+        function renderPersonGroupAddOptions() {
+            const select = document.getElementById('person-group-add');
+            select.innerHTML = '<option value="">::Add nobody::</option>';
+            actualProfile.bb_people.forEach(person => {
+                if (!actualGroup.bb_people.some(p => p.bb_id === person.bb_id)) {
+                    const option = document.createElement('option');
+                    option.value = person.bb_id;
+                    option.textContent = person.bb_name;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderPersonGroupAddOptions();
+        });
+
+    </script>
+
+
+    
 </body>
 </html>
