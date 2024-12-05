@@ -482,7 +482,80 @@
 
         <section id="in-use">
             <h2>In Use</h2>
-            <p>Manage your events and attendances here.</p>
+
+            <div id="in-use-events">
+                <h3>Events of group: <span class="placeholder-group-name"></span> in profile: <span class="placeholder-profile-name"></span></h3>
+                
+                <div id="actual-event">
+                    <h4>Actual Event</h4>
+                    <p>Name: <span class="placeholder-event-name dblclck"></span></p>
+                    <p>Date: <span class="placeholder-event-date dblclck"></span></p>
+                    <p>Place Price: <span class="placeholder-event-place-price dblclck"></span></p>
+                    <p>Box Price: <span class="placeholder-event-box_price dblclck"></span></p>
+                    <p>Number of Balls in Box: <span class="placeholder-event-number-of-balls-in-box dblclck"></span></p>
+                    <p>Used Balls: <span class="placeholder-event-used-balls dblclck"></span></p>
+                    <p>Price: <span class="placeholder-event-price dblclck"></span></p>
+                    <p>Price per Person: <span class="placeholder-event-price-per-person"></span></p>
+
+                    <div id="edit-dialog" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid #ccc;">
+                        <p>Editing: <span id="placeholder-edit-field"></span></p>
+                        <input type="hidden" id="edit-field">
+                        <label for="edit-value">Enter new value:</label>
+                        <input type="text" id="edit-value">
+                        <button id="save-value">Save</button>
+                        <button id="cancel-value">Cancel</button>
+                    </div>
+
+                    <table id="event-attendances-keys">
+                        <thead>
+                            <tr>
+                                <th>Person</th><th>Frac</th><th>Price</th><th>Payed</th><th>To Pay</th><th>Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Event attendances will be listed here -->
+                        </tbody>
+                    </table>
+
+
+
+
+                </div>
+
+                <div id="create-event">
+                    <h4>Create New Event</h4>
+                    <form id="create-event-form">
+                        <label for="new-event-name">Name:</label>
+                        <input type="text" id="new-event-name" name="new-event-name" required>
+                        <label for="new-event-date">Date:</label>
+                        <input type="datetime-local" id="new-event-date" name="new-event-date" required>
+                        <label for="new-event-place-price">Place Price:</label>
+                        <input type="number" id="new-event-place-price" name="new-event-place-price" required>
+                        <label for="new-event-box-price">Box Price:</label>
+                        <input type="number" id="new-event-box-price" name="new-event-box-price" required>
+                        <label for="new-event-number-of-balls-in-box">Number of Balls in Box:</label>
+                        <input type="number" id="new-event-number-of-balls-in-box" name="new-event-number-of-balls-in-box" required>
+                        <label for="new-event-used-balls">Used Balls:</label>
+                        <input type="number" id="new-event-used-balls" name="new-event-used-balls" required>
+                        <button type="submit">Create</button>
+                    </form>                
+                </div>
+
+                <div id="events-list">
+                    <table id="events-keys">
+                        <thead>
+                            <tr>
+                                <th>Switch to</th><th>Name</th><th>Date</th><th>Balanced</th><th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Events will be listed here -->
+                        </tbody>
+                    </table>            
+                </div>
+
+            </div>
+
         </section>
     </div>
 
@@ -825,6 +898,80 @@
                 }
             });
         }
+
+        document.getElementById('actual-event').addEventListener('dblclick', function(event) {
+            if (event.target.classList.contains('dblclck')) {
+                const field = event.target.classList[1].replace('placeholder-event-', ''); // Extract the field name from the class
+                const currentValue = event.target.textContent;
+
+                // Show the dialog
+                const dialog = document.getElementById('edit-dialog');
+                dialog.style.display = 'block';
+                const input = document.getElementById('edit-value');
+                input.value = currentValue;
+
+                // Set input type based on the field
+                switch (field) {
+                    case 'date':
+                        input.type = 'date';
+                        break;
+                    case 'place-price':
+                    case 'box-price':
+                    case 'price':
+                        input.type = 'number';
+                        input.step = '0.01';
+                        break;
+                    case 'number-of-balls-in-box':
+                    case 'used-balls':
+                        input.type = 'number';
+                        input.step = '1';
+                        break;
+                    default:
+                        input.type = 'text';
+                }
+            }
+        });
+
+        // Save the new value
+        document.getElementById('save-value').onclick = function() {
+            const newValue = input.value;
+            event.target.textContent = newValue;
+            dialog.style.display = 'none';
+
+            // Update the corresponding property in the BB_Event object
+            if (actualEvent) {
+                switch (field) {
+                    case 'name':
+                        actualEvent.bb_name = newValue;
+                        break;
+                    case 'date':
+                        actualEvent.bb_date = new Date(newValue);
+                        break;
+                    case 'place-price':
+                        actualEvent.bb_placePrice = parseFloat(newValue);
+                        break;
+                    case 'box-price':
+                        actualEvent.bb_boxPrice = parseFloat(newValue);
+                        break;
+                    case 'number-of-balls-in-box':
+                        actualEvent.bb_numberOfBallsInBox = parseInt(newValue, 10);
+                        break;
+                    case 'used-balls':
+                        actualEvent.bb_usedBalls = parseInt(newValue, 10);
+                        break;
+                    case 'price':
+                        actualEvent.bb_price = parseFloat(newValue);
+                        break;
+                    default:
+                        console.error('Unknown field:', field);
+                }
+            }
+        };
+
+        // Cancel the edit
+        document.getElementById('cancel-value').onclick = function() {
+            dialog.style.display = 'none';
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             renderPersonGroupAddOptions();
